@@ -1,12 +1,25 @@
-import { Router } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 import { Types } from 'mongoose';
 import { z } from 'zod';
+import { env } from '../config/env.js';
 import { Holding } from '../models/Holding.js';
 import { MarketIndex } from '../models/MarketIndex.js';
 import { StockQuote } from '../models/StockQuote.js';
 import { WatchlistItem } from '../models/WatchlistItem.js';
 
 const router = Router();
+
+function requireAdminApiKey(req: Request, res: Response, next: NextFunction) {
+  if (!env.ADMIN_API_KEY) {
+    return res.status(503).json({ message: 'ADMIN_API_KEY is not configured' });
+  }
+
+  if (req.header('x-admin-api-key') !== env.ADMIN_API_KEY) {
+    return res.status(401).json({ message: 'Invalid admin API key' });
+  }
+
+  return next();
+}
 
 const stockQuoteSchema = z.object({
   symbol: z.string().min(1),
@@ -47,7 +60,7 @@ router.get('/research/export', (_req, res) => {
   );
 });
 
-router.post('/import/stocks', async (req, res, next) => {
+router.post('/import/stocks', requireAdminApiKey, async (req, res, next) => {
   try {
     const items = z.array(stockQuoteSchema).parse(req.body.items ?? req.body);
     const result = await StockQuote.bulkWrite(
@@ -71,7 +84,7 @@ router.post('/import/stocks', async (req, res, next) => {
   }
 });
 
-router.post('/import/indices', async (req, res, next) => {
+router.post('/import/indices', requireAdminApiKey, async (req, res, next) => {
   try {
     const items = z.array(marketIndexSchema).parse(req.body.items ?? req.body);
     const result = await MarketIndex.bulkWrite(
@@ -95,7 +108,7 @@ router.post('/import/indices', async (req, res, next) => {
   }
 });
 
-router.post('/import/holdings', async (req, res, next) => {
+router.post('/import/holdings', requireAdminApiKey, async (req, res, next) => {
   try {
     const items = z.array(holdingSchema).parse(req.body.items ?? req.body);
     const result = await Holding.insertMany(items, { ordered: false });
@@ -105,7 +118,7 @@ router.post('/import/holdings', async (req, res, next) => {
   }
 });
 
-router.post('/import/watchlist', async (req, res, next) => {
+router.post('/import/watchlist', requireAdminApiKey, async (req, res, next) => {
   try {
     const items = z.array(watchlistSchema).parse(req.body.items ?? req.body);
     const result = await WatchlistItem.bulkWrite(

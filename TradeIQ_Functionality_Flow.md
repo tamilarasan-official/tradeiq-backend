@@ -19,6 +19,8 @@ This backend currently includes:
 
 Dashboard, profile, orders, portfolio, stock search, and market indices now read from MongoDB collections instead of route-level mock arrays.
 
+Admin import endpoints require an `x-admin-api-key` header matching the `ADMIN_API_KEY` backend environment variable.
+
 MongoDB collections used:
 
 - `users`
