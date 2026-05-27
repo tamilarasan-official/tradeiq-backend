@@ -11,6 +11,25 @@ npm run dev
 
 The API starts on `http://localhost:4000`.
 
+## Render Deployment
+
+Use these settings for the backend repository root:
+
+```text
+Root Directory: leave empty
+Build Command: npm install && npm run build
+Start Command: npm start
+```
+
+Required environment variables:
+
+```text
+MONGODB_URI=mongodb+srv://...
+JWT_SECRET=<long-random-secret>
+WEB_ORIGIN=https://your-web-dashboard-url
+MOBILE_ORIGIN=*
+```
+
 ## Implemented Starter Surface
 
 - Auth: register, login, OTP placeholders, MPIN placeholders
