@@ -1,34 +1,44 @@
 import { Router } from 'express';
+import { StockQuote } from '../models/StockQuote.js';
 
 const router = Router();
 
-const stocks = [
-  { symbol: 'RELIANCE', companyName: 'Reliance Industries', ltp: 2850, changePercent: 1.2 },
-  { symbol: 'TCS', companyName: 'Tata Consultancy Services', ltp: 4025, changePercent: -0.4 },
-  { symbol: 'INFY', companyName: 'Infosys', ltp: 1510, changePercent: 0.7 },
-];
-
-router.get('/search', (req, res) => {
+router.get('/search', async (req, res, next) => {
+  try {
   const query = String(req.query.q ?? '').toUpperCase();
+    const stocks = await StockQuote.find({
+      $or: [
+        { symbol: { $regex: query, $options: 'i' } },
+        { companyName: { $regex: query, $options: 'i' } },
+      ],
+    })
+      .sort({ symbol: 1 })
+      .limit(25)
+      .lean();
+
   res.json({
-    data: stocks.filter(
-      stock =>
-        stock.symbol.includes(query) ||
-        stock.companyName.toUpperCase().includes(query),
-    ),
+      data: stocks,
   });
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.get('/:symbol', (req, res) => {
+router.get('/:symbol', async (req, res, next) => {
+  try {
   const symbol = req.params.symbol.toUpperCase();
+    const stock = await StockQuote.findOne({ symbol }).lean();
+
+    if (!stock) {
+      return res.status(404).json({ message: 'Stock not found' });
+    }
+
   res.json({
-    data: stocks.find(stock => stock.symbol === symbol) ?? {
-      symbol,
-      companyName: `${symbol} Limited`,
-      ltp: 0,
-      changePercent: 0,
-    },
+      data: stock,
   });
+  } catch (error) {
+    next(error);
+  }
 });
 
 router.get('/:symbol/chart', (_req, res) => {

@@ -16,12 +16,34 @@ const registerSchema = z.object({
   studyGroup: z.enum(['APP', 'CONTROL', 'NONE']).default('APP'),
 });
 
+const googleSchema = z.object({
+  firebaseUid: z.string().min(3),
+  email: z.email(),
+  fullName: z.string().min(1).default('TradeIQ Investor'),
+  mobile: z.string().optional(),
+});
+
+function createAccessToken(userId: unknown) {
+  return jwt.sign({ sub: String(userId) }, env.JWT_SECRET, {
+    expiresIn: '15m',
+  });
+}
+
 router.post('/register', async (req, res, next) => {
   try {
     const input = registerSchema.parse(req.body);
     const passwordHash = await bcrypt.hash(input.password, 12);
-    const user = await User.create({ ...input, passwordHash });
-    res.status(201).json({ userId: user._id, kycStatus: user.kycStatus });
+    const user = await User.create({
+      ...input,
+      authProvider: 'PASSWORD',
+      passwordHash,
+    });
+    res.status(201).json({
+      accessToken: createAccessToken(user._id),
+      userId: user._id,
+      kycStatus: user.kycStatus,
+      user,
+    });
   } catch (error) {
     next(error);
   }
@@ -40,10 +62,35 @@ router.post('/login', async (req, res, next) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const accessToken = jwt.sign({ sub: user._id }, env.JWT_SECRET, {
-      expiresIn: '15m',
-    });
-    res.json({ accessToken, user });
+    res.json({ accessToken: createAccessToken(user._id), user });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/google', async (req, res, next) => {
+  try {
+    const input = googleSchema.parse(req.body);
+    const user = await User.findOneAndUpdate(
+      { $or: [{ firebaseUid: input.firebaseUid }, { email: input.email }] },
+      {
+        $set: {
+          firebaseUid: input.firebaseUid,
+          email: input.email,
+          fullName: input.fullName,
+          mobile: input.mobile,
+          authProvider: 'GOOGLE',
+        },
+        $setOnInsert: {
+          studyGroup: 'APP',
+          kycStatus: 'PENDING',
+          biometricEnabled: false,
+        },
+      },
+      { new: true, upsert: true, runValidators: true },
+    );
+
+    res.json({ accessToken: createAccessToken(user._id), user });
   } catch (error) {
     next(error);
   }

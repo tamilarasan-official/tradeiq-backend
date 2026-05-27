@@ -1,11 +1,12 @@
 import { Router } from 'express';
+import { Types } from 'mongoose';
 import { z } from 'zod';
+import { requireAuth, type AuthenticatedRequest } from '../middlewares/auth.js';
 import { Order } from '../models/Order.js';
 
 const router = Router();
 
 const placeOrderSchema = z.object({
-  userId: z.string(),
   symbol: z.string(),
   exchange: z.enum(['NSE', 'BSE']),
   orderType: z.enum(['MARKET', 'LIMIT', 'SL', 'SL-M']),
@@ -18,26 +19,82 @@ const placeOrderSchema = z.object({
   sessionId: z.string().optional(),
 });
 
-router.post('/place', async (req, res, next) => {
+router.post('/place', requireAuth, async (req, res, next) => {
   try {
     const input = placeOrderSchema.parse(req.body);
-    const order = await Order.create(input);
+    const order = await Order.create({
+      ...input,
+      userId: new Types.ObjectId((req as AuthenticatedRequest).userId),
+    });
     res.status(201).json({ data: order });
   } catch (error) {
     next(error);
   }
 });
 
-router.get('/', async (_req, res, next) => {
+router.get('/', requireAuth, async (req, res, next) => {
   try {
-    res.json({ data: await Order.find().sort({ createdAt: -1 }).limit(50) });
+    res.json({
+      data: await Order.find({ userId: new Types.ObjectId((req as AuthenticatedRequest).userId) })
+        .sort({ createdAt: -1 })
+        .limit(50),
+    });
   } catch (error) {
     next(error);
   }
 });
 
-router.get('/today', async (_req, res) => res.json({ data: [] }));
-router.get('/:orderId', async (req, res) => res.json({ data: { id: req.params.orderId } }));
-router.delete('/:orderId', async (req, res) => res.json({ cancelled: req.params.orderId }));
+router.get('/today', requireAuth, async (req, res, next) => {
+  try {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    res.json({
+      data: await Order.find({
+        userId: new Types.ObjectId((req as AuthenticatedRequest).userId),
+        createdAt: { $gte: start },
+      }).sort({ createdAt: -1 }),
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/:orderId', requireAuth, async (req, res, next) => {
+  try {
+    const order = await Order.findOne({
+      _id: req.params.orderId,
+      userId: new Types.ObjectId((req as AuthenticatedRequest).userId),
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    res.json({ data: order });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete('/:orderId', requireAuth, async (req, res, next) => {
+  try {
+    const order = await Order.findOneAndUpdate(
+      {
+        _id: req.params.orderId,
+        userId: new Types.ObjectId((req as AuthenticatedRequest).userId),
+      },
+      { status: 'CANCELLED' },
+      { new: true },
+    );
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    res.json({ data: order });
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router;

@@ -3,10 +3,16 @@ import { Schema, model } from 'mongoose';
 const userSchema = new Schema(
   {
     fullName: { type: String, required: true, trim: true },
-    mobile: { type: String, required: true, unique: true, index: true },
+    mobile: { type: String, unique: true, sparse: true, index: true },
     email: { type: String, required: true, unique: true, index: true },
-    panNumber: { type: String, required: true },
-    passwordHash: { type: String, required: true },
+    firebaseUid: { type: String, unique: true, sparse: true, index: true },
+    authProvider: {
+      type: String,
+      enum: ['PASSWORD', 'GOOGLE'],
+      default: 'PASSWORD',
+    },
+    panNumber: String,
+    passwordHash: String,
     mpin: String,
     kycStatus: {
       type: String,

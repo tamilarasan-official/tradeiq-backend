@@ -14,6 +14,18 @@ This backend currently includes:
 - Portfolio endpoints
 - Research event endpoints
 - Admin CSV export
+- Admin MongoDB import endpoints for stocks, indices, holdings, and watchlist
 - Render deployment configuration
 
-The backend currently returns demo trading data for dashboard/profile/watchlist/orders until a real broker or market-data provider is connected.
+Dashboard, profile, orders, portfolio, stock search, and market indices now read from MongoDB collections instead of route-level mock arrays.
+
+MongoDB collections used:
+
+- `users`
+- `stockquotes`
+- `marketindices`
+- `watchlistitems`
+- `holdings`
+- `orders`
+- `pricealerts`
+- `researchevents`
