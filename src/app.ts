@@ -5,9 +5,11 @@ import morgan from 'morgan';
 import { ZodError } from 'zod';
 import adminRoutes from './routes/admin.js';
 import authRoutes from './routes/auth.js';
+import dashboardRoutes from './routes/dashboard.js';
 import marketRoutes from './routes/markets.js';
 import orderRoutes from './routes/orders.js';
 import portfolioRoutes from './routes/portfolio.js';
+import profileRoutes from './routes/profile.js';
 import researchRoutes from './routes/research.js';
 import stockRoutes from './routes/stocks.js';
 
@@ -32,6 +34,8 @@ export function createApp() {
         portfolio: '/api/portfolio',
         research: '/api/research',
         admin: '/api/admin',
+        dashboard: '/api/dashboard',
+        profile: '/api/profile/me',
       },
     });
   });
@@ -41,12 +45,14 @@ export function createApp() {
   });
 
   app.use('/api/auth', authRoutes);
+  app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/markets', marketRoutes);
   app.use('/api/stocks', stockRoutes);
   app.use('/api/orders', orderRoutes);
   app.use('/api/portfolio', portfolioRoutes);
   app.use('/api/research', researchRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/profile', profileRoutes);
 
   const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     if (error instanceof ZodError) {
