@@ -19,6 +19,23 @@ export function createApp() {
   app.use(express.json({ limit: '2mb' }));
   app.use(morgan('dev'));
 
+  app.get('/', (_req, res) => {
+    res.json({
+      service: 'tradeiq-backend',
+      status: 'ok',
+      endpoints: {
+        health: '/health',
+        auth: '/api/auth',
+        markets: '/api/markets',
+        stocks: '/api/stocks',
+        orders: '/api/orders',
+        portfolio: '/api/portfolio',
+        research: '/api/research',
+        admin: '/api/admin',
+      },
+    });
+  });
+
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', service: 'tradeiq-backend' });
   });
