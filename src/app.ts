@@ -13,6 +13,7 @@ import portfolioRoutes from './routes/portfolio.js';
 import profileRoutes from './routes/profile.js';
 import researchRoutes from './routes/research.js';
 import stockRoutes from './routes/stocks.js';
+import walletRoutes from './routes/wallet.js';
 
 export function createApp() {
   const app = express();
@@ -38,6 +39,7 @@ export function createApp() {
         dashboard: '/api/dashboard',
         intelligence: '/api/intelligence/overview',
         profile: '/api/profile/me',
+        wallet: '/api/wallet',
       },
     });
   });
@@ -56,6 +58,7 @@ export function createApp() {
   app.use('/api/research', researchRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/profile', profileRoutes);
+  app.use('/api/wallet', walletRoutes);
 
   const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     if (error instanceof ZodError) {

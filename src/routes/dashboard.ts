@@ -5,6 +5,7 @@ import { Holding } from '../models/Holding.js';
 import { Order } from '../models/Order.js';
 import { StockQuote } from '../models/StockQuote.js';
 import { WatchlistItem } from '../models/WatchlistItem.js';
+import { WalletTransaction } from '../models/WalletTransaction.js';
 import { formatInr, formatPercent, formatSignedInr } from '../utils/format.js';
 
 const router = Router();
@@ -12,10 +13,11 @@ const router = Router();
 router.get('/', requireAuth, async (req, res, next) => {
   try {
     const userId = new Types.ObjectId((req as AuthenticatedRequest).userId);
-    const [holdings, orders, watchlistItems] = await Promise.all([
+    const [holdings, orders, watchlistItems, walletTransactions] = await Promise.all([
       Holding.find({ userId }).sort({ createdAt: -1 }).lean(),
       Order.find({ userId }).sort({ createdAt: -1 }).limit(10).lean(),
       WatchlistItem.find({ userId }).sort({ createdAt: -1 }).lean(),
+      WalletTransaction.find({ userId }).sort({ createdAt: -1 }).limit(20).lean(),
     ]);
 
     const symbols = [
@@ -64,6 +66,16 @@ router.get('/', requireAuth, async (req, res, next) => {
       status: order.status,
     }));
 
+    const walletBalance = walletTransactions.reduce((total, transaction) => {
+      if (transaction.status !== 'SUCCESS') {
+        return total;
+      }
+
+      return transaction.type === 'CREDIT'
+        ? total + transaction.amount
+        : total - transaction.amount;
+    }, 0);
+
   res.json({
     data: {
       summary: {
@@ -75,6 +87,16 @@ router.get('/', requireAuth, async (req, res, next) => {
         watchlist,
         holdings: holdingsData,
         orders: ordersData,
+        wallet: {
+          balance: formatInr(walletBalance),
+          transactions: walletTransactions.map(transaction => ({
+            amount: formatInr(transaction.amount),
+            type: transaction.type,
+            status: transaction.status,
+            description: transaction.description ?? 'Wallet transaction',
+            referenceId: transaction.referenceId,
+          })),
+        },
     },
   });
   } catch (error) {
