@@ -6,6 +6,7 @@ import { ZodError } from 'zod';
 import adminRoutes from './routes/admin.js';
 import authRoutes from './routes/auth.js';
 import dashboardRoutes from './routes/dashboard.js';
+import intelligenceRoutes from './routes/intelligence.js';
 import marketRoutes from './routes/markets.js';
 import orderRoutes from './routes/orders.js';
 import portfolioRoutes from './routes/portfolio.js';
@@ -35,6 +36,7 @@ export function createApp() {
         research: '/api/research',
         admin: '/api/admin',
         dashboard: '/api/dashboard',
+        intelligence: '/api/intelligence/overview',
         profile: '/api/profile/me',
       },
     });
@@ -46,6 +48,7 @@ export function createApp() {
 
   app.use('/api/auth', authRoutes);
   app.use('/api/dashboard', dashboardRoutes);
+  app.use('/api/intelligence', intelligenceRoutes);
   app.use('/api/markets', marketRoutes);
   app.use('/api/stocks', stockRoutes);
   app.use('/api/orders', orderRoutes);
