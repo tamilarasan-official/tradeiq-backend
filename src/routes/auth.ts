@@ -25,7 +25,7 @@ const googleSchema = z.object({
 
 function createAccessToken(userId: unknown) {
   return jwt.sign({ sub: String(userId) }, env.JWT_SECRET, {
-    expiresIn: '15m',
+    expiresIn: '365d',
   });
 }
 
@@ -89,6 +89,33 @@ router.post('/google', async (req, res, next) => {
       },
       { new: true, upsert: true, runValidators: true },
     );
+
+    res.json({ accessToken: createAccessToken(user._id), user });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/google-login', async (req, res, next) => {
+  try {
+    const input = googleSchema.parse(req.body);
+    const user = await User.findOne({
+      $or: [{ firebaseUid: input.firebaseUid }, { email: input.email }],
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        code: 'ACCOUNT_REQUIRED',
+        message: 'Create your TradeIQ account before using Google sign-in.',
+      });
+    }
+
+    user.firebaseUid = input.firebaseUid;
+    user.authProvider = 'GOOGLE';
+    if (!user.fullName && input.fullName) {
+      user.fullName = input.fullName;
+    }
+    await user.save();
 
     res.json({ accessToken: createAccessToken(user._id), user });
   } catch (error) {
